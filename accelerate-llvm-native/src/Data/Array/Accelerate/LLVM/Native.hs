@@ -79,6 +79,7 @@ import Data.Array.Accelerate.LLVM.Native.State
 import Data.Array.Accelerate.LLVM.Native.Target
 import Data.Array.Accelerate.LLVM.Native.Debug                      as Debug
 
+import Control.Monad.IO.Class
 import Control.Monad.Trans
 import System.IO.Unsafe
 import qualified Language.Haskell.TH.Extra                          as TH
@@ -121,15 +122,18 @@ runAsyncWith target a
   $ async (runWithIO target a)
 
 runWithIO :: (Arrays a, HasCallStack) => Native -> Acc a -> IO a
-runWithIO target a = execute
+runWithIO target a = putStrLn ("runWithIO") >> execute
   where
     !acc    = convertAcc a
     execute = do
       dumpGraph acc
       evalNative target $ do
         build <- phase Compile elapsedS (compileAcc acc) >>= dumpStats
+        liftIO $ putStrLn ("runWithIO: compile done")
         exec  <- phase Link    elapsedS (linkAcc build)
+        liftIO $ putStrLn ("runWithIO: link done")
         res   <- phase Execute elapsedP (evalPar (executeAcc exec >>= getArrays (arraysR exec)))
+        liftIO $ putStrLn ("runWithIO: exec done")
         return $ toArr res
 
 

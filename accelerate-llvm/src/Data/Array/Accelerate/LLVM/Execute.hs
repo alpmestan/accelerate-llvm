@@ -7,6 +7,7 @@
 {-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE FlexibleContexts      #-}
 {-# OPTIONS_HADDOCK hide #-}
 -- |
 -- Module      : Data.Array.Accelerate.LLVM.Execute
@@ -51,7 +52,7 @@ import Data.Array.Accelerate.LLVM.Link
 import qualified Data.Array.Accelerate.LLVM.AST                 as AST
 
 import Control.Monad
-import Control.Monad.Trans                                      ( liftIO )
+import Control.Monad.Trans                                      ( MonadIO(..) )
 import System.IO.Unsafe
 import Prelude                                                  hiding ( exp, map, unzip, scanl, scanr, scanl1, scanr1 )
 
@@ -185,7 +186,7 @@ data Delayed a where
 --
 {-# INLINEABLE executeAcc #-}
 executeAcc
-    :: Execute arch
+    :: (MonadIO (Par arch), Execute arch)
     => ExecAcc arch a
     -> Par arch (FutureArraysR arch a)
 executeAcc !acc =
@@ -263,11 +264,11 @@ instance Execute arch => ExecuteAfun arch (Par arch b) where
 --
 {-# INLINEABLE executeOpenAcc #-}
 executeOpenAcc
-    :: forall arch aenv arrs. Execute arch
+    :: forall arch aenv arrs. (MonadIO (Par arch), Execute arch)
     => ExecOpenAcc arch aenv arrs
     -> ValR arch aenv
     -> Par arch (FutureArraysR arch arrs)
-executeOpenAcc !topAcc !aenv = travA topAcc
+executeOpenAcc !topAcc !aenv = liftIO (putStrLn "executeOpenAcc") >> travA topAcc
   where
     travA :: ExecOpenAcc arch aenv a -> Par arch (FutureArraysR arch a)
     travA (EvalAcc _ pacc) =
@@ -381,6 +382,7 @@ executeOpenAcc !topAcc !aenv = travA topAcc
     -- Allocate an array on the remote device
     allocate :: ArrayR (Array sh e) -> Exp aenv sh -> Par arch (FutureR arch (Array sh e))
     allocate repr sh = do
+      liftIO $ putStrLn "allocate"
       r    <- new
       sh'  <- travE sh
       fork $ do
