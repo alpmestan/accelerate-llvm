@@ -51,7 +51,7 @@ main = defaultMainWithHooks simpleUserHooks
           hooked_buildinfo = (Just buildinfo, [])
           pkg_desc'        = updatePackageDescription hooked_buildinfo pkg_desc
 
-      putStrLn $ "libraryDynDirs: " ++ Installed.libraryDynDirs accelerate_pkg
+      putStrLn $ "libraryDynDirs: " ++ show (Installed.libraryDynDirs accelerate_pkg)
       writeHookedBuildInfo buildinfo_file hooked_buildinfo
       postConf simpleUserHooks args flags pkg_desc' lbi
 
